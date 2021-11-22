@@ -1,14 +1,15 @@
-// All rights reseved to Eng.Issam adnan Engissamadnan@gmail.com
-// Source is open to all users with only one condition  (mention the Author)..
-//2021 - 
+{All rights reseved to Eng.Issam adnan Engissamadnan@gmail.com
+Source is open to all users with only one condition  (mention the Author)..
+2021 -
+Little pit of this code was collected from the the Enternet (Shadow effect , Gradient Fill overloading)..
+to those who wrote the mentioed code ,they are welcome to add their names in this section .}
 
 
 
 
 
 
-
-// Test Colors $000000DF , $000080FF, $0000A400, $00C6C600
+// Test Colors $000000DF , $000080FF, $0000A400, $00C6C600   for SectionColors ..
 
 
 
@@ -18,17 +19,87 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes,
-  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls;
+  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls,ShadowWnd;
 
-  type
 
-    PTriVertex = ^TTriVertex;
-    TTriVertex = record
-    X, Y: DWORD;
-    Red, Green, Blue, Alpha: WORD;
+type
+   TBevelOuter=(bvNone,bvRaised,bvLowred) ;
+   TMBorderStyle=(BsRound,BsRectagle);
+   TBlockStyle=(BBsRound,BBsCircle,BBsRectangle);
+   TProgressFillSyle=(PfSolidFill,PfGradientFill,PfSections,PfTexture);
+   TGradientDirection=(gdVertical,gdHorizontal,gdMidHorizontal,gdMidVertical) ;
+   TOnProgressEvent = procedure(Sender:TObject;const Progress: Integer) of object;
+   TTextAlignemnt=(txLeft,txRight,txCenter);
+   TCandyDirection=(cdLeft,cdRight);
+   TTriangle=array[0..2] Of TPoint;
+   TFourangle=array[0..3] of TPoint;
+   TProgressShape=(psRecangle,psCircle,psSectors) ;
+   TOrintation=(OrHorizontal=0,OrVertical=1);
+   TDarknessRange=1..4 ;
+   TThicknessRang=5..13;
+
+
+type
+
+   PTriVertex = ^TTriVertex;
+   TTriVertex = record
+   X, Y: DWORD;
+   Red, Green, Blue, Alpha: WORD;
 
 
   end;
+
+
+type
+  PRGBTriple = ^TRGBTriple;
+  TRGBTriple = packed record
+    b: byte; {easier to type than rgbtBlue}
+    g: byte;
+    r: byte;
+  end;
+  PRow = ^TRow;
+  TRow = array[0..1000000] of TRGBTriple;
+  PPRows = ^TPRows;
+  TPRows = array[0..1000000] of PRow;
+
+const
+  MaxKernelSize = 100;
+
+type
+  TKernelSize = 1..MaxKernelSize;
+  TKernel = record
+  Size: TKernelSize;
+  Weights: array[-MaxKernelSize..MaxKernelSize] of single;
+  end;
+
+
+   type
+   TShadowEffect=class(TPersistent)
+
+   private
+   FShadowColor:TColor;
+   FShadowEffect:Boolean;
+   FShadowDarkness:TDarknessRange;
+   FshadowThickness:TThicknessRang;
+   FOnChange:TNotifyEvent;
+   procedure SetShadowColor(Value:Tcolor);
+   procedure SetShadowEffect(Value:Boolean);
+   procedure SetShadowDarkness(Value:TDarknessRange);
+   procedure SetShadowThickness(Value:TThicknessRang);
+   public
+   procedure Assign(Source:TPersistent);override;
+   protected
+   published
+   property Shadow:Boolean read FShadowEffect write SetShadowEffect ;
+   property Drakness:TDarknessRange read FShadowDarkness write SetShadowDarkness default 3;
+   property Thickness:TThicknessRang read FshadowThickness write SetShadowThickness default 5;
+   property Color:TColor read FShadowColor write SetShadowColor default clRed;
+   property OnChange: TNotifyEvent read FOnChange write FOnChange;
+
+   end;
+
+
+
 
 
 
@@ -43,10 +114,14 @@ uses
     FShowText:Boolean;
     FOnChange:TNotifyEvent;
     FOwner:TPersistent;
+    FTextAngle:Integer;
+    FPercentRang:string;
     procedure SetColor(Value:TColor);
     procedure SetText(Value:String);
     procedure SetShowText(Value:Boolean);
     procedure SetTextColor(Value:TColor);
+    procedure SetTextAngle(Value:Integer);
+    procedure SetPercentRange(Value:string);
     public
     constructor Create(Collection: TCollection);override;
     published
@@ -55,49 +130,31 @@ uses
     property ShowText:Boolean read FShowText write SetShowText;
     property TextColor:TColor read FTextColor write SetTextColor;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    property TextAngle:Integer read FTextAngle write SetTextAngle;
+    property Range:string read FPercentRang write SetPercentRange;
     end;
 
     type
 
     TSectionsColors=class (TCollection)
     private
-    FOwner: TPersistent;
-    FOnChange:TNotifyEvent;
-    function GetItem(Index: Integer): TColorSection;
-    procedure SetItem(Index: Integer; Value: TColorSection);
+    FOwner:     TPersistent;
+    FOnChange:  TNotifyEvent;
+    function    GetItem(Index: Integer): TColorSection;
+    procedure   SetItem(Index: Integer; Value: TColorSection);
     protected
-    function GetOwner: TPersistent; override;
-    procedure Assign(Other: TPersistent);override;
+    function    GetOwner: TPersistent; override;
+
     public
     constructor Create(AOwner: TPersistent);
-    procedure Notify(Item: TCollectionItem; Action: TCollectionNotification);override;
-    function Add: TColorSection;
-    property Items[Index: Integer]: TColorSection read GetItem write SetItem; default;
-    property OnChange: TNotifyEvent read FOnChange write FOnChange;
+    procedure   Assign(Other: TPersistent);override;
+    procedure   Notify(Item: TCollectionItem; Action: TCollectionNotification);override;
+    function    Add: TColorSection;
+    property    Items[Index: Integer]: TColorSection read GetItem write SetItem; default;
+    property    OnChange: TNotifyEvent read FOnChange write FOnChange;
 
 
    end;
-
-
-
-
-
-  type
-   TBevelOuter=(bvNone,bvRaised,bvLowred) ;
-   TMBorderStyle=(BsRound,BsRectagle);
-   TBlockStyle=(BBsRound,BBsCircle,BBsRectangle);
-   TProgressFillSyle=(PfSolidFill,PfGradientFill,PfSections);
-   TGradientDirection=(gdVertical,gdHorizontal,gdMidHorizontal,gdMidVertical) ;
-   TOnProgressEvent = procedure(Sender:TObject;const Progress: Integer) of object;
-   TTextAlignemnt=(txLeft,txRight,txCenter);
-   TCandyDirection=(cdLeft,cdRight);
-   TTriangle=array[0..2] Of TPoint;
-   TFourangle=array[0..3] of TPoint;
-   TProgressShape=(psRecangle,psCircle,psSectors) ;
-
-
-
-
 
 
    type
@@ -165,11 +222,13 @@ uses
     FGradientDirection:TGradientDirection;
     FOnChange: TNotifyEvent;
     FGlowEffect:Boolean;
+    FReverseColors:Boolean;
     protected
     procedure SetStartColor(Value:TColor);
     procedure SetEndColor(Value:TColor);
     procedure SetGradientDirection(Value:TGradientDirection);
     procedure SetGlowEffect(Value:Boolean);
+    procedure SetReverseColors(Value:Boolean);
     public
     procedure Assign(Other: TPersistent);override;
     published
@@ -177,7 +236,8 @@ uses
     property EndColor:TColor read FEndColor write SetEndColor default clWhite;
     property GradientDirection:TGradientDirection read FGradientDirection write SetGradientDirection default gdVertical;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
-    property GlowEffect:Boolean read FGlowEffect write SetGlowEffect default False; 
+    property GlowEffect:Boolean read FGlowEffect write SetGlowEffect default False;
+    property ReverseColors:Boolean read FReverseColors write SetReverseColors ;
 
     end;
 
@@ -190,14 +250,14 @@ uses
     FBlockStyle: TBlockStyle;
     FOnChange: TNotifyEvent;
     FRoundCorner:Integer;
-    FProgressFillSyle:TProgressFillSyle;
+
 
     protected
     procedure SetBlockWidth(Value:Integer);
     procedure SetBlockSepration(Value:Integer);
     procedure SetBlockRoundCorner(Value:Integer);
     procedure SetBlockStyle(Value:TBlockStyle);
-    procedure SetProgressFillSyle(Value:TProgressFillSyle);
+
 
 
     public
@@ -210,7 +270,6 @@ uses
     property BlockSepration:Integer read FBlockSepration  write SetBlockSepration;
     property BlockStyle:TBlockStyle read FBlockStyle  write SetBlockStyle default BBsRound;
     property BlockCorner:Integer read FRoundCorner  write SetBlockRoundCorner;
-    property ProgressFillSyle:TProgressFillSyle read FProgressFillSyle write SetProgressFillSyle default PFSolidFill;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
 
 
@@ -227,9 +286,9 @@ uses
    FBlocksWidth:Integer;
    FFillColor:TColor;
    FBackGroundColor:TColor;
-   FLineColor:TColor;
    FBordersColor:TColor;
    FProgress:Integer;
+   FProgressFillStyle:TProgressFillSyle;
    FProgressSepration:Integer;
    FHasBorders:Boolean;
    FShowProgressPercentage:Boolean;
@@ -244,8 +303,6 @@ uses
    FAOwner:TWinControl;
    FOnProgress:TOnProgressEvent;
    FOnMouseLeave: TNotifyEvent;
-   FGlowAffect:Boolean;
-   FGlowCount:Integer;
    FCandyEffrect:TCandyEffect;                      //Works Only With Soomth.. & Solid filling..
    FInvalidateCount:Integer;
    FProgressShape:TProgressShape;
@@ -253,15 +310,18 @@ uses
    FSectionsColors:TSectionsColors;
    FBordersEdge:Integer;
    FOnchange:TNotifyEvent;
+   FProgressTexture:TBitmap;
+   FShadow:TShadowEffect;
+   FOrintation:TOrintation;
    procedure RepaintRequest (Sender: TObject)  ;
    procedure SetMin(Value:Integer) ;
    procedure SetMax(Value:Integer) ;
    procedure SetStep(Value:Integer) ;
    procedure SetProgressSepration(Value:Integer) ;
    procedure SetProgress(Value:Integer) ;
+   procedure SetProgressFillSyle(Value:TProgressFillSyle);
    procedure SetFillColor(Value:Tcolor) ;
    procedure SetBackGroundColor(Value:Tcolor) ;
-   procedure SetLineColor(Value:Tcolor) ;
    procedure SetBordersColor(Value:Tcolor) ;
    procedure SetHasBorders(Value:Boolean) ;
    procedure SetShowPercent(Value:Boolean) ;
@@ -278,12 +338,23 @@ uses
    procedure SetSectionsColors(Value: TSectionsColors);
    procedure SetBorderEdge(Value:Integer);
    procedure SetTranparent(Value:Boolean);
+   procedure SetProgressTexture(Value:Tbitmap);
+   procedure SetShadow(Value:TShadowEffect);
+   procedure SetOrintation(Value:TOrintation);
+
+
+
+
+
+   
    procedure CMMouseLeave(var Message: TMessage); message CM_MOUSELEAVE;
+   
+
 
    public
    constructor Create(AOwner:TComponent);override;
-   destructor Destroy ;override;
-   procedure SetBounds(Aleft,ATop,AWidth,AHeight:Integer);override;
+   destructor  Destroy ;override;
+   procedure   SetBounds(Aleft,ATop,AWidth,AHeight:Integer);override;
 
    protected
 
@@ -291,9 +362,19 @@ uses
    function  AssignRect(SRect:Trect):TRect;
    procedure OnProgressHandler(Sender:TObject;const AProgress: Integer);
    Procedure LightEffect (var Btm:tbitmap;Amount:integer);
+   procedure RotateText(ACanvas: TCanvas; X, Y, Angle: Integer;const Text: String);
    function  sinpixs(a: integer): integer;
-   function DrawRadiusLines(btmap: TBitmap; Center: TPoint; Radius1,Radius2,
+
+   function  DrawRadiusLines(btmap: TBitmap; Center: TPoint; Radius1,Radius2,
    Max,Progress: Integer;BackGroundColor,StartColor,EndColor:Tcolor): Boolean;
+
+   procedure MakeGaussianKernel(var K: TKernel; radius: double; MaxData, DataGranularity: double);
+   function  TrimInt(Lower, Upper, theInteger: integer): integer;
+   function  TrimReal(Lower, Upper: integer; x: double): integer;
+   procedure BlurRow(var theRow: array of TRGBTriple; K: TKernel; P: PRow);
+   procedure GBlur(theBitmap: TBitmap; radius: double);
+   procedure PrepareBitmap32Shadow(Bitmap: TBitmap; Darkness: Byte=100;ShColor:Tcolor=clBlack);
+   procedure BlurCanavs(Canva:TCanvas;Shape:TProgressShape;W,H:Integer);
 
    published
    
@@ -302,9 +383,9 @@ uses
    property   Step:Integer read Fstep write SetStep;
    property   ProgressSepration:Integer read FprogressSepration write SetProgressSepration default 2;
    property   Progress:Integer read FProgress write SetProgress;
+   property   ProgressFillStyle:TProgressFillSyle read FProgressFillStyle write SetProgressFillSyle default PFSolidFill;
    property   ProgressColor:TColor read FFillColor write SetFillColor;
    property   BackGroundColor:TColor read FBackGroundColor write SetBackGroundColor default clWhite;
-   property   LineColor:TColor read FLineColor write SetLineColor;
    property   BordersColor:TColor read FBordersColor write SetBordersColor;
    property   HasBorders:Boolean read FHasBorders write SetHasBorders default False;
    property   ShowPercent:Boolean read FShowProgressPercentage write SetShowPercent default False;
@@ -323,6 +404,9 @@ uses
    property   SectionsColors:TSectionsColors read FSectionsColors write SetSectionsColors;
    property   BorderEdge:Integer read FBordersEdge write SetBorderEdge;
    property   Transparent:Boolean read FTransparent write SetTranparent default False;
+   property   PrgressTexture:TBitmap read FProgressTexture write SetProgressTexture;
+   property   Shadow:TShadowEffect read FShadow write SetShadow;
+   property   Orintation:TOrintation read FOrintation write SetOrintation default OrHorizontal;
    property   Onchange:TNotifyEvent read FOnchange write FOnchange;
    property   Align;
    property   OnMouseMove;
@@ -350,11 +434,11 @@ RegisterComponents('Additional', [TIssamProgressBar]);
 end;
 
 function GradientFill(DC: HDC; Vertex: PTriVertex; NumVertex: ULONG;
-  Mesh: Pointer; NumMesh, Mode: ULONG): BOOL; stdcall; overload;
-  external msimg32 name 'GradientFill';
+Mesh: Pointer; NumMesh, Mode: ULONG): BOOL; stdcall; overload;
+external msimg32 name 'GradientFill';
 
-  function GradientFill(DC: HDC; const ARect: TRect; StartColor,
-  EndColor: TColor; Vertical: Boolean): Boolean; overload;
+function GradientFill(DC: HDC; const ARect: TRect; StartColor,
+EndColor: TColor; Vertical: Boolean): Boolean; overload;
 const
   Modes: array[Boolean] of ULONG = (GRADIENT_FILL_RECT_H, GRADIENT_FILL_RECT_V);
 var
@@ -384,6 +468,7 @@ end;
 { TIssamProgressBar }
 
 constructor TIssamProgressBar.Create(AOwner: TComponent);
+
 begin
   inherited Create(AOwner);
   if  AOwner is TWinControl then
@@ -398,8 +483,11 @@ begin
   FBordersColor:=clWhite;
   FSmooth:=True;
   FInvalidateCount:=0;
-  FBordersEdge:=10;
+  FBordersEdge:=20;
   FProgressSepration:=0; // the default value to make the smooth working...
+  FShowProgressPercentage:=True;
+
+
 
 
   Height:=20;
@@ -430,8 +518,8 @@ begin
   with FCandyEffrect do
   begin
   OnChange:=RepaintRequest;
-  FirstColor:=clRed;
-  SecondColor:=clYellow;
+  FirstColor:=$008080FF;
+  SecondColor:=clWhite;
   CandyDirection:=cdLeft;
   end;
 
@@ -450,15 +538,27 @@ begin
  with FGradiantColors do
  begin
  OnChange:=RepaintRequest;
- FStartColor:=$000055FF;
+ FStartColor:=$008080FF;;
  FEndColor:=clWhite;
+ FGradientDirection:=gdMidHorizontal;
 
  end;
 
-
+ FShadow:=TShadowEffect.Create;
+ with FShadow do
+ begin
+ OnChange:=RepaintRequest;
+ FShadowColor:=clRed;
+ FShadowEffect:=True;
+ FShadowDarkness:=3;
+ FshadowThickness:=5;
+ end;
 
  FSectionsColors:=TSectionsColors.Create(Self);
  FSectionsColors.OnChange:=RepaintRequest;
+ FProgressTexture:=TBitmap.Create;
+
+
 
 end;
 
@@ -469,21 +569,26 @@ begin
   FSectionsColors.Free;
   FProgressText.Free;
   FGradiantColors.Free;
+  FProgressTexture.Free;
+ 
   inherited Destroy;
 end;
 
 
-
 procedure TIssamProgressBar.Paint;
+
+
 var
-  FillRecta,ClRect,TempRect,Temp2Rect:TRect;
+  FillRecta,ClRect,TempRect,Temp2Rect,Temp3Rect:TRect;
   Blocks,Sections:array of TRect;
-  BlockCount,PercentRectLeft,PercentRectTop:Integer;
+  BlockCount,PercentRectLeft,PercentRectTop,BlockAmount:Integer;
   PercentWidth,PercentHeight,NewPerLeft,NewPerTop:Integer;
   Bhr,Rhrgn,Hhrgn,PerHrgn:HRGN;
   TempBmp:TBitmap;
+
   Triangle:array[0..1]of TTriangle;
   Fourangle:TFourangle;
+  
   Chrgn1,Chrgn2,Chrgn3:HRGN; // Candy Effect;
   //=========
   Rad:Integer;
@@ -493,6 +598,12 @@ var
   i:Integer;
   StepRect:TRect;
   Hr1,Hr2:HRGN;
+
+  //=================
+
+   Bitmap: TBitmap;
+   BlendFunction: TBlendFunction;
+   MotionStep:Integer;
 begin
 inherited;
 
@@ -513,12 +624,22 @@ psRecangle :
 
  with FillRecta do
                  begin
-                 Left:=0;
-                 Top:=FProgressSepration;
-                 Right:=Round(FProgress*ClientWidth/Fmax);
-                 Bottom:=ClientRect.Bottom-FProgressSepration;
-                 end;
+                 case FOrintation of
+                 OrHorizontal: begin
+                               Left:=0;
+                               Top:=FProgressSepration;
+                               Right:=Round(FProgress*ClientWidth/Fmax);
+                               Bottom:=ClientRect.Bottom-FProgressSepration;
+                               end;
+                 OrVertical  : begin
+                               Left:=ProgressSepration;
+                               top:=ClientHeight;
+                               right:=ClientWidth-FProgressSepration;
+                               Bottom:=ClientHeight- Round(FProgress*ClientHeight/Fmax);
 
+                               end;
+                 end;
+                 end;
  with ClRect     do
                  begin
                  Left:=ClientRect.Left;
@@ -550,32 +671,70 @@ end;
 
 if not FSmooth then                    //if Blocks style...
 begin
-SetLength(Blocks,Round(ClientWidth/FBlocks.fBlockWidth)+1) ;
-for BlockCount:=0 to  Round(ClientWidth/FBlocks.fBlockWidth)  do
+if FOrintation=OrHorizontal then
 begin
-Blocks[BlockCount].Left:=BlockCount*FBlocks.FBlockWidth ;
-Blocks[BlockCount].top:=FProgressSepration;
-Blocks[BlockCount].Right:=Blocks[BlockCount].Left+FBlocks.fBlockWidth;
-Blocks[BlockCount].Bottom:=ClientHeight-FProgressSepration-1;
+SetLength(Blocks,Round(ClientWidth/FBlocks.fBlockWidth)+1);
+BlockAmount:=Round(ClientWidth/FBlocks.fBlockWidth);
+end
+else
+begin
+SetLength(Blocks,Round(ClientHeight/FBlocks.fBlockWidth)+1);
+BlockAmount:=Round(ClientHeight/FBlocks.fBlockWidth) ;
+end;
 
+for BlockCount:=0 to  BlockAmount  do
+begin
+
+Case FOrintation of
+OrHorizontal:begin
+             Blocks[BlockCount].Left:=BlockCount*FBlocks.FBlockWidth ;
+             Blocks[BlockCount].top:=FProgressSepration;
+             Blocks[BlockCount].Right:=Blocks[BlockCount].Left+FBlocks.fBlockWidth;
+             Blocks[BlockCount].Bottom:=ClientHeight-FProgressSepration-1;
+             end;
+OrVertical  :begin
+             Blocks[BlockCount].Left:=FProgressSepration;
+             Blocks[BlockCount].top:=ClientHeight-BlockCount*FBlocks.FBlockWidth;//ClientHeight-BlockCount*FBlocks.FBlockWidth;
+             Blocks[BlockCount].Right:=ClientWidth-FProgressSepration;
+             Blocks[BlockCount].Bottom:=Blocks[BlockCount].top-FBlocks.FBlockWidth; //ClientHeight-2*BlockCount*FBlocks.FBlockWidth;
+             end;
+end;
 // Determine the Blocks that gona be filled ..
 
 
 Canvas.Brush.Style:=bsSolid;
 Canvas.Brush.Color:=FFillColor;
 
-TempRect.Left:=Blocks[BlockCount].Left;
-TempRect.top:=Blocks[BlockCount].Top;
-TempRect.Bottom:=Blocks[BlockCount].Bottom;
+case FOrintation of
+OrHorizontal:
+            Begin
+            TempRect.Left:=Blocks[BlockCount].Left;
+            TempRect.top:=Blocks[BlockCount].Top;
+            TempRect.Bottom:=Blocks[BlockCount].Bottom;
+            end;
+OrVertical :
+            begin
+            TempRect.Left:=Blocks[BlockCount].Left;
+            TempRect.top:=Blocks[BlockCount].Top;
+            TempRect.Right:=Blocks[BlockCount].Right;
 
-if  (Round(FProgress*ClientWidth/Fmax))>=Blocks[BlockCount].Right then
+            end;
+end;
+if  (((Round(FProgress*ClientWidth/Fmax))>=Blocks[BlockCount].Right) and (FOrintation=OrHorizontal)) // If Block within Progress ..
+  or(((Round(FProgress*ClientHeight/Fmax))>=(ClientHeight-Blocks[BlockCount].Bottom)) and (FOrintation=OrVertical))
+then
 begin
-TempRect.Right:=Blocks[BlockCount].Right-FBlocks.fBlockSepration ;
+
+if FOrintation= OrHorizontal then
+TempRect.Right:=Blocks[BlockCount].Right-FBlocks.fBlockSepration else    //Vertical Orintation ...
+TempRect.Bottom:=Blocks[BlockCount].Bottom+FBlocks.fBlockSepration ;
+
+
 
 case FBlocks.FBlockStyle of
 BBsRectangle:begin
 
-             case FBlocks.FProgressFillSyle of
+             case FProgressFillStyle of
 
              PFSolidFill :Canvas.FillRect(TempRect);
 
@@ -585,7 +744,11 @@ BBsRectangle:begin
                             gdHorizontal:   begin
                                             TempBmp:=TBitmap.Create;
                                             TempBmp.Width:=FillRecta.Right-FillRecta.Left;
-                                            TempBmp.Height:=FillRecta.Bottom-fillRecta.Top;
+                                            
+                                            if FOrintation =OrHorizontal then
+                                            TempBmp.Height:=FillRecta.Bottom-fillRecta.Top else    //if vertical Orintation..
+                                            TempBmp.Height:=ClientHeight;
+
                                             GradientFill(TempBmp.Canvas.Handle,TempBmp.Canvas.ClipRect, FGradiantColors.FStartColor , FGradiantColors.FEndColor, False);
                                             Canvas.CopyRect(TempRect,TempBmp.Canvas,TempRect);
                                             TempBmp.Free;
@@ -599,26 +762,62 @@ BBsRectangle:begin
                                             end;
 
                             gdMidVertical  :begin
-                                            //======================= After..
+                                            TempBmp:=TBitmap.Create;
+                                            TempBmp.Width:=FillRecta.Right-FillRecta.Left;
+                                            if FOrintation=OrHorizontal then
+                                            TempBmp.Height:=FillRecta.Bottom-FillRecta.Top else
+                                            TempBmp.Height:=ClientHeight;
 
+                                            Temp3Rect:=Rect(0,0,TempBmp.Width div 2,TempBmp.Height);
+                                            Temp2Rect:=Rect(TempBmp.Width div 2,0,TempBmp.Width,TempBmp.Height);
+                                            GradientFill(TempBmp.Canvas.Handle,Temp3Rect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,False);
+                                            GradientFill(TempBmp.Canvas.Handle,Temp2Rect,FGradiantColors.FStartColor,FGradiantColors.FEndColor,false) ;
+                                            Canvas.CopyRect(TempRect,TempBmp.Canvas,TempRect);
+                                            TempBmp.Free;
                                             end;
                             end;
 
                             end;
 
              PfSections :   begin
+                            if FOrintation=OrHorizontal then
+                            begin
                             SectionWidth:=Round(ClientWidth/(FSectionsColors.Count-1));
-                           if (TempRect.Right/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Right/SectionWidth,0));
+                            if (TempRect.Right/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Right/SectionWidth,0));
+                            end else                                       // Vertical Orintation...
+                            begin
+                            SectionWidth:=Round(ClientHeight/(FSectionsColors.Count-1)) ;
+                            if (TempRect.Bottom/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Bottom/SectionWidth,0));
+                            end;
                                             Temp2Rect:=AssignRect(TempRect);
-                                            SetRect(TempRect,TempRect.Left,TempRect.Top,TempRect.Right,(TempRect.Bottom-TempRect.Top)div 2);
+                                            if FOrintation = OrHorizontal then
+                                            begin
+                                            SetRect(TempRect,TempRect.Left,TempRect.Top,TempRect.Right,(TempRect.Bottom-TempRect.Top)div 2)  ;
                                             GradientFill(Canvas.Handle,TempRect,clWhite,FSectionsColors.Items[SecIndex].Fcolor,TRue) ;
                                             SetRect(Temp2Rect,Temp2Rect.Left,(Temp2Rect.Bottom- Temp2Rect.Top)div 2 ,Temp2Rect.Right,Temp2Rect.Bottom);
                                             GradientFill(Canvas.Handle,Temp2Rect,FSectionsColors.Items[SecIndex].Fcolor,clWhite,TRue) ;
-                           // Canvas.FillRect(TempRect);
+                                            end else                          // Vertical Orintation...
+                                            begin
+                                            SetRect(TempRect,TempRect.Left,TempRect.Top,(TempRect.Right- TempRect.Left)div 2,TempRect.Bottom) ;
+                                            GradientFill(Canvas.Handle,TempRect,clWhite,FSectionsColors.Items[FSectionsColors.Count-SecIndex-1].Fcolor,false) ;
+
+                                            SetRect(Temp2Rect,(Temp2Rect.Right- Temp2Rect.Left) div 2,Temp2Rect.Top ,Temp2Rect.Right,Temp2Rect.Bottom);
+                                            GradientFill(Canvas.Handle,Temp2Rect,FSectionsColors.Items[FSectionsColors.Count-SecIndex-1].Fcolor,clWhite,false) ;
+
+                                            end;
+
+
+
 
                             end;
 
+             PfTexture :    begin         //This
+                            if FProgressTexture <>nil then begin
+                            FProgressTexture.Canvas.StretchDraw(FillRecta,FProgressTexture);
+                            Canvas.CopyRect(TempRect,FProgressTexture.Canvas,TempRect);
 
+                            end;
+                            end;
                             end;
 
              end;
@@ -634,7 +833,7 @@ BBsRound:begin
 
 BBsCircle:begin
           Bhr:=CreateEllipticRgnIndirect(TempRect);
-          case FBlocks.FProgressFillSyle of
+          case FProgressFillStyle of
           PFSolidFill :FillRgn(Canvas.Handle,Bhr,Canvas.Brush.Handle) ;
 
           PFGradientFill:begin
@@ -672,10 +871,13 @@ end;
 end
 else                            // To handle the remaing progress that is bigger than Block width ...
 begin
-TempRect.Right:=Round(FProgress*ClientWidth/Fmax);
+if FOrintation=OrHorizontal then
+TempRect.Right:=Round(FProgress*ClientWidth/Fmax)else
+TempRect.Bottom:=ClientHeight-Round(FProgress*ClientHeight/Fmax) ;
+
 case FBlocks.FBlockStyle of
 BBsRectangle: begin
-              case FBlocks.FProgressFillSyle of
+              case FProgressFillStyle of
               PFSolidFill   : begin
                               Canvas.FillRect(TempRect);
                               Break;
@@ -686,7 +888,11 @@ BBsRectangle: begin
                                    gdHorizontal:  begin
                                                   TempBmp:=TBitmap.Create;
                                                   TempBmp.Width:=FillRecta.Right-FillRecta.Left;
-                                                  TempBmp.Height:=FillRecta.Bottom-fillRecta.Top;
+
+                                                  if FOrintation =OrHorizontal then
+                                                  TempBmp.Height:=FillRecta.Bottom-fillRecta.Top else
+                                                  TempBmp.Height:=ClientHeight;
+
                                                   GradientFill(TempBmp.Canvas.Handle,TempBmp.Canvas.ClipRect, FGradiantColors.FStartColor , FGradiantColors.FEndColor, False);
                                                   Canvas.CopyRect(TempRect,TempBmp.Canvas,TempRect);
                                                   TempBmp.Free;
@@ -700,23 +906,58 @@ BBsRectangle: begin
                                                   end;
 
                                   gdMidVertical  :begin
-
+                                                  TempBmp:=TBitmap.Create;
+                                                  TempBmp.Width:=FillRecta.Right-FillRecta.Left;
+                                                  if FOrintation=OrHorizontal then
+                                                  TempBmp.Height:=FillRecta.Bottom-FillRecta.Top else
+                                                  TempBmp.Height:=ClientHeight;
+                                                  Temp3Rect:=Rect(0,0,TempBmp.Width div 2,TempBmp.Height);
+                                                  Temp2Rect:=Rect(TempBmp.Width div 2,0,TempBmp.Width,TempBmp.Height);
+                                                  GradientFill(TempBmp.Canvas.Handle,Temp3Rect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,False);
+                                                  GradientFill(TempBmp.Canvas.Handle,Temp2Rect,FGradiantColors.FStartColor,FGradiantColors.FEndColor,false) ;
+                                                  Canvas.CopyRect(TempRect,TempBmp.Canvas,TempRect);
+                                                  TempBmp.Free;
 
                                                   end;
                               end;
                               Break;
                               end;
               PfSections :    begin
-                              SectionWidth:=Round(ClientWidth/(FSectionsColors.Count-1));
-                               if (TempRect.Right/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Right/SectionWidth,0));
-                               Temp2Rect:=AssignRect(TempRect);
-                               SetRect(TempRect,TempRect.Left,TempRect.Top,TempRect.Right,(TempRect.Bottom-TempRect.Top)div 2);
-                               GradientFill(Canvas.Handle,TempRect,clWhite,FSectionsColors.Items[SecIndex].Fcolor,TRue) ;
-                               SetRect(Temp2Rect,Temp2Rect.Left,(Temp2Rect.Bottom- Temp2Rect.Top)div 2 ,Temp2Rect.Right,Temp2Rect.Bottom);
-                               GradientFill(Canvas.Handle,Temp2Rect,FSectionsColors.Items[SecIndex].Fcolor,clWhite,TRue) ;
+                              if FOrintation=OrHorizontal then
+                              begin
+                              SectionWidth:=Round(ClientWidth/(FSectionsColors.Count-1))  ;
+                              if (TempRect.Right/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Right/SectionWidth,0));
+                              end else                                       // Vertical Orintation...
+                              begin
+                              SectionWidth:=Round(ClientHeight/(FSectionsColors.Count-1)) ;
+                              if (TempRect.Bottom/SectionWidth)<=1 then SecIndex:=0 else SecIndex:=Round(Roundto(TempRect.Bottom/SectionWidth,0));
+                              end;
+                              Temp2Rect:=AssignRect(TempRect);
+
+                                            if FOrintation = OrHorizontal then
+                                            begin
+                                            SetRect(TempRect,TempRect.Left,TempRect.Top,TempRect.Right,(TempRect.Bottom-TempRect.Top)div 2) ;
+                                            GradientFill(Canvas.Handle,TempRect,clWhite,FSectionsColors.Items[SecIndex].Fcolor,TRue) ;
+                                            SetRect(Temp2Rect,Temp2Rect.Left,(Temp2Rect.Bottom- Temp2Rect.Top)div 2 ,Temp2Rect.Right,Temp2Rect.Bottom);
+                                            GradientFill(Canvas.Handle,Temp2Rect,FSectionsColors.Items[SecIndex].Fcolor,clWhite,TRue) ;
+                                            end else                          // Vertical Orintation...
+                                            begin
+                                            SetRect(TempRect,TempRect.Left,TempRect.Top,(TempRect.Right- TempRect.Left)div 2,TempRect.Bottom) ;
+                                            GradientFill(Canvas.Handle,TempRect,clWhite,FSectionsColors.Items[FSectionsColors.Count-SecIndex-1].Fcolor,false) ;
+                                            SetRect(Temp2Rect,(Temp2Rect.Right- Temp2Rect.Left) div 2,Temp2Rect.Top ,Temp2Rect.Right,Temp2Rect.Bottom);
+                                            GradientFill(Canvas.Handle,Temp2Rect,FSectionsColors.Items[FSectionsColors.Count-SecIndex-1].Fcolor,clWhite,false) ;
+
+                                            end;
+
                                Break;
                               end;
-
+             PfTexture :      begin         //This
+                              if FProgressTexture <>nil then begin
+                              FProgressTexture.Canvas.StretchDraw(FillRecta,FProgressTexture);
+                              Canvas.CopyRect(TempRect,FProgressTexture.Canvas,TempRect);
+                              Break;
+                              end;
+                              end;
 
               end;
               end;
@@ -727,6 +968,7 @@ BBsRound:     begin
               Break;
               end;
 BBsCircle:    begin
+              FProgressFillStyle:=PfSolidFill;
               Bhr:=CreateEllipticRgnIndirect(TempRect);
               FillRgn(Canvas.Handle,Bhr,Canvas.Brush.Handle) ;
               DeleteObject(Bhr) ;
@@ -738,9 +980,9 @@ end;
 
 end;
 
-end else                         // if Smooth then..
+end else                         // if Smooth then.. Smooth -No Blocks -
 begin
-     case FBlocks.FProgressFillSyle of
+     case FProgressFillStyle of
 
      PFSolidFill   :begin
                     if not FCandyEffrect.FCandyEffect then
@@ -754,44 +996,109 @@ begin
                     if FProgressRectPen<>nil then                  //For the borders only...
                     Canvas.Pen.Assign(FProgressRectPen);
 
-                    SetLength(Blocks,Round(ClientWidth/FBlocks.fBlockWidth)+1) ;
-                    for BlockCount:=0 to  Round(ClientWidth/FBlocks.fBlockWidth)  do
+                    if FOrintation=OrHorizontal then
                     begin
-
-                    with Blocks[BlockCount] do
+                    SetLength(Blocks,Round(ClientWidth/FBlocks.fBlockWidth)+1);
+                    BlockAmount:=Round(ClientWidth/FBlocks.fBlockWidth);
+                    end
+                    else
                     begin
-                    Left:=BlockCount*FBlocks.FBlockWidth ;
-                    top:=FProgressSepration;
-                    Right:=Blocks[BlockCount].Left+FBlocks.fBlockWidth;
-                    Bottom:=ClientHeight-FProgressSepration;
+                    SetLength(Blocks,Round(ClientHeight/FBlocks.fBlockWidth)+1);
+                    BlockAmount:=Round(ClientHeight/FBlocks.fBlockWidth) ;
                     end;
 
-                    TempRect.Left:=Blocks[BlockCount].Left;
-                    TempRect.top:=Blocks[BlockCount].Top;
-                    TempRect.Bottom:=Blocks[BlockCount].Bottom;
-
-                    if  (Round(FProgress*ClientWidth/Fmax))>=Blocks[BlockCount].Right then
+                    for BlockCount:=0 to  BlockAmount  do
                     begin
-                    TempRect.Right:=Blocks[BlockCount].Right ;
+
+                    Case FOrintation of
+                    OrHorizontal:begin
+                                 Blocks[BlockCount].Left:=BlockCount*FBlocks.FBlockWidth ;
+                                 Blocks[BlockCount].top:=FProgressSepration;
+                                 Blocks[BlockCount].Right:=Blocks[BlockCount].Left+FBlocks.fBlockWidth;
+                                 Blocks[BlockCount].Bottom:=ClientHeight-FProgressSepration-1;
+                                 end;
+                    OrVertical  :begin
+                                 Blocks[BlockCount].Left:=FProgressSepration;
+                                 Blocks[BlockCount].top:=ClientHeight-BlockCount*FBlocks.FBlockWidth;//ClientHeight-BlockCount*FBlocks.FBlockWidth;
+                                 Blocks[BlockCount].Right:=ClientWidth-FProgressSepration;
+                                 Blocks[BlockCount].Bottom:=Blocks[BlockCount].top-FBlocks.FBlockWidth; //ClientHeight-2*BlockCount*FBlocks.FBlockWidth;
+                                 end;
+                    end;
+                    // Determine the Blocks that gona be filled ..
+
+
+                    Canvas.Brush.Style:=bsSolid;
+                    Canvas.Brush.Color:=FFillColor;
+
+                    case FOrintation of
+                    OrHorizontal:
+                                 Begin
+                                 TempRect.Left:=Blocks[BlockCount].Left;
+                                 TempRect.top:=Blocks[BlockCount].Top;
+                                 TempRect.Bottom:=Blocks[BlockCount].Bottom;
+                                  end;
+                    OrVertical :
+                                 begin
+                                 TempRect.Left:=Blocks[BlockCount].Left;
+                                 TempRect.top:=Blocks[BlockCount].Top;
+                                 TempRect.Right:=Blocks[BlockCount].Right;
+
+                                 end;
+                    end;
+
+                    if  (((Round(FProgress*ClientWidth/Fmax))>=Blocks[BlockCount].Right) and (FOrintation=OrHorizontal)) // If Block within Progress ..
+                      or(((Round(FProgress*ClientHeight/Fmax))>=(ClientHeight-Blocks[BlockCount].Bottom)) and (FOrintation=OrVertical))
+                    then
+                    begin
+
+                    if FOrintation= OrHorizontal then
+                    TempRect.Right:=Blocks[BlockCount].Right else    //Vertical Orintation ...
+                    TempRect.Bottom:=Blocks[BlockCount].Bottom ;
+
+
                     Canvas.Brush.Style:=bsSolid;
 
                     if Odd(FInvalidateCount) and (FGradiantColors.FGlowEffect) then                //Glow effect..
                     Canvas.Brush.Color:=FCandyEffrect.FCandyFisrtColor else Canvas.Brush.Color:=FCandyEffrect.FCandySecondColor;
 
 
-                    case FCandyEffrect.FCandyDirection  of
+                    case FCandyEffrect.FCandyDirection  of             // First Triangle
                     cdLeft :
                     begin
-                    Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
-                    Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
-                    Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
-                    end;
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                                 Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                                 end;
+                    OrVertical  :
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Triangle[0,2]:=Point(TempRect.Right,TempRect.Top);
 
+                                 end;
+                    end;
+                    end;
                     cdRight :
                     begin
-                    Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
-                    Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                                  end;
+                    OrVertical  :
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Right,TempRect.Top) ;
+                                 Triangle[0,2]:=Point(TempRect.left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+
+                                 end;
+
+                    end;
                     end;
 
                     end;
@@ -800,19 +1107,42 @@ begin
                     FillRgn(Canvas.Handle,Chrgn1,Canvas.Brush.Handle);
                     if FCandyEffrect.FPen then   Canvas.Polyline(Triangle[0]);
 
-                    case FCandyEffrect.FCandyDirection  of
+                    case FCandyEffrect.FCandyDirection  of                        // Last Triangle
                     cdLeft :
                     begin
-                    Triangle[1,0]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Triangle[1,1]:=Point(TempRect.Right,TempRect.Top);
-                    Triangle[1,2]:=Point(TempRect.Right,TempRect.Bottom);
+                    case FOrintation OF
+                    OrHorizontal:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                Triangle[1,1]:=Point(TempRect.Right,TempRect.Top);
+                                Triangle[1,2]:=Point(TempRect.Right,TempRect.Bottom);
+                                end;
+                    OrVertical:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.Left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                Triangle[1,1]:=Point(TempRect.Left,TempRect.Bottom);
+                                Triangle[1,2]:=Point(TempRect.Right,TempRect.Bottom);
+                                end;
+                    end;
                     end;
 
                     cdRight :
                     begin
-                    Triangle[1,0]:=Point(TempRect.Right,TempRect.Top);
-                    Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
-                    Triangle[1,2]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                    case FOrintation OF
+                    OrHorizontal:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.Right,TempRect.Top);
+                                Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
+                                Triangle[1,2]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                                end;
+                    OrVertical:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.left,TempRect.Bottom) ;
+                                Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
+                                Triangle[1,2]:=Point(TempRect.Right,TempRect.top-((TempRect.top-TempRect.Bottom)div 2));
+                                end;
+
+                    end;
                     end;
 
 
@@ -822,21 +1152,46 @@ begin
                     FillRgn(Canvas.Handle,Chrgn2,Canvas.Brush.Handle);
                     if FCandyEffrect.FPen then   Canvas.Polyline(Triangle[1]);
 
-                    case FCandyEffrect.FCandyDirection  of
+                    case FCandyEffrect.FCandyDirection  of                      // The Mid Fourangle ....
                     cdLeft :
                     begin
-                    Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
-                    Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
-                    Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                                 end;
+                    OrVertical  :
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.Left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.Right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+                                 end;
+                    end;
                     end;
 
                     cdRight :
                     begin
-                    Fourangle[0]:=Point(TempRect.Left,TempRect.Bottom);
-                    Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Fourangle[2]:=Point(TempRect.Right,TempRect.Top);
-                    Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Bottom);
+                                 Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Top);
+                                 Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                                 end;
+
+                    OrVertical  :
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Right,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Fourangle[2]:=Point(TempRect.left,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+                                 end;
+                    end;
                     end;
 
 
@@ -851,26 +1206,55 @@ begin
 
                     end else                                       // The last Block ....
                     begin
-                    TempRect.Right:=Round(FProgress*ClientWidth/Fmax);
+
+                    if FOrintation=OrHorizontal then
+                    TempRect.Right:=Round(FProgress*ClientWidth/Fmax)else
+                    TempRect.Bottom:=ClientHeight-Round(FProgress*ClientHeight/Fmax) ;
+
                     Canvas.Brush.Style:=bsSolid;
                     if Odd(FInvalidateCount) and (FGradiantColors.FGlowEffect) then
                     Canvas.Brush.Color:=FCandyEffrect.FirstColor else Canvas.Brush.Color:=FCandyEffrect.SecondColor;
 
 
 
-                    case FCandyEffrect.FCandyDirection  of
+                    case FCandyEffrect.FCandyDirection  of                      // First Triangle in the alst Block...
                     cdLeft :
                     begin
-                    Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
-                    Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
-                    Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                                 Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                                 end;
+                    OrVertical  :
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Triangle[0,2]:=Point(TempRect.Right,TempRect.Top);
+
+                                 end;
+                    end;
                     end;
 
                     cdRight :
                     begin
-                    Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
-                    Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Triangle[0,2]:=Point(TempRect.Left,TempRect.Bottom);
+                                  end;
+                    OrVertical  :
+                                 begin
+                                 Triangle[0,0]:=Point(TempRect.Left,TempRect.Top);
+                                 Triangle[0,1]:=Point(TempRect.Right,TempRect.Top) ;
+                                 Triangle[0,2]:=Point(TempRect.left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+
+                                 end;
+
+                    end;
                     end;
 
                     end;
@@ -880,18 +1264,41 @@ begin
                     if FCandyEffrect.FPen then   Canvas.Polyline(Triangle[0]);
 
                     case FCandyEffrect.FCandyDirection  of
-                    cdLeft :
+                    cdLeft :                                                    // Last Trianngle in the alst Block...
+                    begin
+                    case FOrintation OF
+                    OrHorizontal:
                     begin
                     Triangle[1,0]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
                     Triangle[1,1]:=Point(TempRect.Right,TempRect.Top);
                     Triangle[1,2]:=Point(TempRect.Right,TempRect.Bottom);
                     end;
+                    OrVertical:
+                    begin
+                    Triangle[1,0]:=Point(TempRect.Left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                    Triangle[1,1]:=Point(TempRect.Left,TempRect.Bottom);
+                    Triangle[1,2]:=Point(TempRect.Right,TempRect.Bottom);
+                    end;
+                    end;
+                    end;
 
                     cdRight :
                     begin
-                    Triangle[1,0]:=Point(TempRect.Right,TempRect.Top);
-                    Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
-                    Triangle[1,2]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                    case FOrintation OF
+                    OrHorizontal:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.Right,TempRect.Top);
+                                Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
+                                Triangle[1,2]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom) ;
+                                end;
+                    OrVertical:
+                                begin
+                                Triangle[1,0]:=Point(TempRect.left,TempRect.Bottom) ;
+                                Triangle[1,1]:=Point(TempRect.Right,TempRect.Bottom);
+                                Triangle[1,2]:=Point(TempRect.Right,TempRect.top-((TempRect.top-TempRect.Bottom)div 2));
+                                end;
+
+                    end;
                     end;
 
 
@@ -901,21 +1308,46 @@ begin
                     FillRgn(Canvas.Handle,Chrgn2,Canvas.Brush.Handle);
                     if FCandyEffrect.FPen then   Canvas.Polyline(Triangle[1]);
 
-                    case FCandyEffrect.FCandyDirection  of
+                    case FCandyEffrect.FCandyDirection  of                      // The Mid Fourangle in the Last Block...
                     cdLeft :
                     begin
-                    Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
-                    Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
-                    Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                                 end;
+                    OrVertical  :
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.Left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.Right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+                                 end;
+                    end
                     end;
 
                     cdRight :
                     begin
-                    Fourangle[0]:=Point(TempRect.Left,TempRect.Bottom);
-                    Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
-                    Fourangle[2]:=Point(TempRect.Right,TempRect.Top);
-                    Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                    case FOrintation of
+                    OrHorizontal:
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Left,TempRect.Bottom);
+                                 Fourangle[1]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Top);
+                                 Fourangle[2]:=Point(TempRect.Right,TempRect.Top);
+                                 Fourangle[3]:=Point(TempRect.Left+((TempRect.Right-TempRect.Left) div 2),TempRect.Bottom);
+                                 end;
+
+                    OrVertical  :
+                                 begin
+                                 Fourangle[0]:=Point(TempRect.Right,TempRect.Top);
+                                 Fourangle[1]:=Point(TempRect.right,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2)) ;
+                                 Fourangle[2]:=Point(TempRect.left,TempRect.Bottom);
+                                 Fourangle[3]:=Point(TempRect.left,TempRect.Top-((TempRect.Top-TempRect.Bottom) div 2));
+                                 end;
+                    end;
                     end;
 
 
@@ -950,53 +1382,165 @@ begin
 
 
 
-     PFGradientFill:begin
-                    GradientFill(Canvas.Handle, FillRecta, FGradiantColors.FStartColor , FGradiantColors.FEndColor, Boolean(FGradiantColors.FGradientDirection=gdVertical));
+     PFGradientFill:begin         // Additional code to handle the gradient Styles..
+                         case FGradiantColors.FGradientDirection of
 
+                         gdVertical:
+
+                         GradientFill(Canvas.Handle, FillRecta, FGradiantColors.FStartColor , FGradiantColors.FEndColor,true);
+
+                         gdMidHorizontal:
+                         begin
+
+                         TempBmp:=TBitmap.Create;
+                         TempBmp.Width:=FillRecta.Right-FillRecta.Left;
+                         if FOrintation = OrHorizontal then
+                         begin
+                         TempBmp.Height:=FillRecta.Bottom-FillRecta.Top ;
+                         TempRect:=Rect(0,0,TempBmp.Width,TempBmp.Height div 2);
+                         Temp2Rect:=Rect(0,TempBmp.Height div 2,TempBmp.Width,TempBmp.Height);
+                         GradientFill(TempBmp.Canvas.Handle,TempRect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,true);
+                         GradientFill(TempBmp.Canvas.Handle,Temp2Rect,FGradiantColors.FStartColor,FGradiantColors.FEndColor,true) ;
+
+                         end
+                         else               // Vertical Oriantation..
+                         begin
+                         TempBmp.Height:=ClientHeight;
+                         TempRect:=Rect(0,0,TempBmp.Width div 2,TempBmp.Height);
+                         Temp2Rect:=Rect(0,TempBmp.width div 2,TempBmp.Width,TempBmp.Height);
+                         GradientFill(TempBmp.Canvas.Handle,TempRect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,false);
+                         GradientFill(TempBmp.Canvas.Handle,Temp2Rect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,false) ;
+                         end;
+
+                         Canvas.CopyRect(FillRecta,TempBmp.Canvas,FillRecta);
+                         TempBmp.Free;
+                         end;
+
+                         gdHorizontal:
+                         GradientFill(Canvas.Handle, FillRecta, FGradiantColors.FStartColor , FGradiantColors.FEndColor,false);
+
+                         gdMidVertical:
+                         begin
+                         TempBmp:=TBitmap.Create;
+                         TempBmp.Width:=FillRecta.Right-FillRecta.Left;
+                         if FOrintation = OrHorizontal then
+                         TempBmp.Height:=FillRecta.Bottom-FillRecta.Top else
+                         TempBmp.Height:=ClientHeight;
+                         
+                         TempRect:=Rect(0,0,TempBmp.Width div 2,TempBmp.Height);
+                         Temp2Rect:=Rect(TempBmp.Width div 2,0,TempBmp.Width,TempBmp.Height);
+                         GradientFill(TempBmp.Canvas.Handle,TempRect,FGradiantColors.FEndColor,FGradiantColors.FStartColor,False);
+                         GradientFill(TempBmp.Canvas.Handle,Temp2Rect,FGradiantColors.FStartColor,FGradiantColors.FEndColor,false) ;
+                         Canvas.CopyRect(FillRecta,TempBmp.Canvas,FillRecta);
+                         TempBmp.Free;
+                         end;
+                         end;
                     end;
 
      PfSections     :begin
-                     SectionWidth:=Round(ClientWidth/FSectionsColors.Count);
+                   //  SectionWidth:=Round(ClientWidth/FSectionsColors.Count);
 
                      //Set Blocks ...
-
+                     if FOrintation = OrHorizontal then
+                     begin
+                     SectionWidth:=Round(ClientWidth/FSectionsColors.Count);
                      SetLength(Sections,Round(ClientWidth/SectionWidth)+1) ;
+                     end
+                     else     //FOrintation = OrVertical
+                     begin
+                     SectionWidth:=Round(ClientHeight/FSectionsColors.Count);
+                     SetLength(Sections,Round(ClientHeight/SectionWidth)+1);
+                     end;
+                     
                      for SectionCount:=0 to  FSectionsColors.Count-1  do
                      begin
 
-                     with Sections[SectionCount] do
-                     begin
-                     Left:=SectionCount*SectionWidth ;
-                     top:=FProgressSepration;
-                     Right:=Sections[SectionCount].Left+SectionWidth;
-                     Bottom:=ClientHeight-FProgressSepration;
+                     case FOrintation of
+                     OrHorizontal:
+                                 begin
+                                 with Sections[SectionCount] do
+                                 begin
+                                 Left:=SectionCount*SectionWidth ;
+                                 top:=FProgressSepration;
+                                 Right:=Sections[SectionCount].Left+SectionWidth;
+                                 Bottom:=ClientHeight-FProgressSepration;
+                                 end;
+                                 end;
+                     OrVertical  :
+                                 Begin
+                                 with Sections[SectionCount] do
+                                 begin
+                                 Left:=FProgressSepration;
+                                 top:=ClientHeight-SectionCount*SectionWidth;
+                                 right:=ClientWidth-FProgressSepration;
+                                 Bottom:=Sections[SectionCount].top-SectionWidth;
+                                 end;
+                                 end;
+
                      end;
 
-                     with TempRect do
-                     begin
-                     Left:=Sections[SectionCount].Left;
-                     top:=Sections[SectionCount].Top;
-                     Bottom:=Sections[SectionCount].Bottom;
+                     case FOrintation of
+                     OrHorizontal:
+                                  begin
+                                  with TempRect do
+                                  begin
+                                  Left:=Sections[SectionCount].Left;
+                                  top:=Sections[SectionCount].Top;
+                                  Bottom:=Sections[SectionCount].Bottom;
+                                  end;
+                                  end;
+                     OrVertical  :
+                                  begin
+                                  with TempRect do
+                                  begin
+                                  Left:=Sections[SectionCount].Left;
+                                  top:=Sections[SectionCount].Top;
+                                  Right:=Sections[SectionCount].Right;
+                                  end;
+                                  end;
                      end;
 
                      Canvas.Brush.Color:=FSectionsColors.Items[SectionCount].Color;
                      Canvas.Brush.Style:=bsSolid;
-                     if  (Round(FProgress*ClientWidth/Fmax))>=Sections[SectionCount].Right then
+
+                     if  (((Round(FProgress*ClientWidth/Fmax))>=Sections[SectionCount].Right) and (FOrintation=OrHorizontal)) or
+                         (((Round(FProgress*ClientHeight/Fmax))>=(ClientHeight-Sections[SectionCount].Bottom)) and (FOrintation=OrVertical)) then
                      begin
-                     TempRect.Right:=Sections[SectionCount].Right-FBlocks.fBlockSepration;
+
+                     if FOrintation=OrHorizontal then
+                     TempRect.Right:=Sections[SectionCount].Right-FBlocks.fBlockSepration else
+                     TempRect.Bottom:=Sections[SectionCount].Bottom+FBlocks.fBlockSepration  ;
+
+
                      Canvas.FillRect(TempRect);
 
                      if FSectionsColors.Items[SectionCount].FShowText then
                      begin
                      Canvas.Font.Color:=FSectionsColors.Items[SectionCount].TextColor ;
                      Canvas.Brush.Style:=bsClear;
+                     case FOrintation of
+
+                     OrVertical:
+                     begin
+                     RotateText(Canvas,Sections[SectionCount].Left+((Sections[SectionCount].Right-(Sections[SectionCount].Left))div 2)-((Canvas.TextHeight(FSectionsColors.Items[SectionCount].FText))div 2)
+                     ,Sections[SectionCount].top-((Sections[SectionCount].Top-(Sections[SectionCount].Bottom))div 2)+((Canvas.TextWidth(FSectionsColors.Items[SectionCount].FText))div 2),FSectionsColors.Items[SectionCount].FTextAngle,FSectionsColors.Items[SectionCount].FText);
+                     end;
+
+                     OrHorizontal:
+                     begin
                      Canvas.TextOut(Sections[SectionCount].Left+((Sections[SectionCount].Right-(Sections[SectionCount].Left))div 2)-((Canvas.TextWidth(FSectionsColors.Items[SectionCount].FText))div 2)
                      ,Sections[SectionCount].top+((Sections[SectionCount].Bottom-(Sections[SectionCount].top))div 2)-((Canvas.TextHeight(FSectionsColors.Items[SectionCount].FText))div 2),FSectionsColors.Items[SectionCount].FText)   ;
+                     end;
+                     end;
 
                      end
                      end else
                      begin                                    // The last Block ....
-                     TempRect.Right:=Round(FProgress*ClientWidth/Fmax);
+
+                     if FOrintation=OrHorizontal then
+                     TempRect.Right:=Round(FProgress*ClientWidth/Fmax) else
+                     TempRect.Bottom:=ClientHeight-Round(FProgress*ClientHeight/Fmax);
+
                      Canvas.Brush.Style:=bsSolid;
                      Canvas.FillRect(TempRect);
                      if FSectionsColors.Items[SectionCount].FShowText then
@@ -1057,88 +1601,9 @@ Canvas.Rectangle(ClientRect) else
 Canvas.RoundRect(ClientRect.Left,ClientRect.Top,ClientRect.Right-1,ClientRect.Bottom-1,FBordersEdge,FBordersEdge);
 end;
 
-//  Show Progress Percentage....
-
-if FShowProgressPercentage then
-begin
-Canvas.Brush.Style:=bsSolid;
-if (100*Roundto((FProgress/FMax),-2))<=50 then
-Canvas.Font.Color:=FProgressText.FStartTextColor else Canvas.Font.Color:=FProgressText.FMidTextColor;
-
-if FProgressText.FTextBox then
-begin
-Canvas.Brush.Color:=FProgressText.FTextBoxColor;
-PercentRectLeft:=(ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
-PercentRectTop:=(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
-
-PercentWidth:=Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-PercentHeight:=Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-
-//=========
-
-case  FProgressText.FTextAlignemnt of
-
-      txCenter:begin
-               NewPerLeft:=PercentRectLeft-1;
-               NewPerTop:=PercentRectTop;
-               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,PercentRectLeft+PercentWidth+2,PercentRectTop+PercentHeight+2,5,5)  ;
-               end;
-      txLeft  :begin
-               NewPerLeft:=1;
-               NewPerTop:=PercentRectTop;
-               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,PercentWidth+2,PercentRectTop+PercentHeight+2,5,5)  ;
-               end;
-      txRight :begin
-               NewPerLeft:=ClientWidth-PercentWidth-2;
-               NewPerTop:=(ClientHeight div 2)-(PercentHeight div 2)-1;
-               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,ClientWidth-1,(ClientHeight div 2)-(PercentHeight div 2)+1+PercentHeight,5,5)  ;
-               End;
-
-end;
-
-FillRgn(Canvas.Handle,PerHrgn,Canvas.Brush.Handle) ;
-
-DeleteObject(PerHrgn);
-
-Canvas.Brush.Style:=bsClear;
-Canvas.TextOut(NewPerLeft,NewPerTop,FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-
-//=========
+//  Show Progress Percentage....      (1)
 
 
-end
-else            // No Text Box ...
-begin
-
-PercentRectLeft:=(ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
-PercentRectTop:=(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
-
-PercentWidth:=Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-PercentHeight:=Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-
-case  FProgressText.FTextAlignemnt of
-
-      txCenter:begin
-               NewPerLeft:=PercentRectLeft-1;
-               NewPerTop:=PercentRectTop;
-               end;
-      txLeft  :begin
-               NewPerLeft:=1;
-               NewPerTop:=PercentRectTop;
-               end;
-      txRight :begin
-               NewPerLeft:=ClientWidth-PercentWidth-2;
-               NewPerTop:=(ClientHeight div 2)-(PercentHeight div 2)-1;
-               End;
-
-end;
-
-
-Canvas.Brush.Style:=bsClear;
-Canvas.TextOut(NewPerLeft,NewPerTop,FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-//Canvas.TextOut((ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%')div 2),(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%')div 2),FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
-end;
-end;
 
 
 //Draw Bevels
@@ -1258,10 +1723,16 @@ psSectors :begin
          TempBmp:=TBitmap.Create;
          TempBmp.Width:=Width;
          TempBmp.Height:=Height;
-         if not FTransparent then
-         DrawRadiusLines(TempBmp,Point(Width div 2,Height div 2),(Width div 2)-2,20,FMax,FProgress,FBackGroundColor,FGradiantColors.FStartColor,FGradiantColors.EndColor)else
-         DrawRadiusLines(TempBmp,Point(Width div 2,Height div 2),(Width div 2)-2,20,FMax,FProgress,FAOwner.Brush.Color,FGradiantColors.FStartColor,FGradiantColors.EndColor) ;
+         if not FTransparent then            //20 is the internal radius ..
+         DrawRadiusLines(TempBmp,Point(Width div 2,Height div 2),(Width div 2)-2,40,FMax,FProgress,FBackGroundColor,FGradiantColors.FStartColor,FGradiantColors.EndColor)else
+         DrawRadiusLines(TempBmp,Point(Width div 2,Height div 2),(Width div 2)-2,40,FMax,FProgress,FAOwner.Brush.Color,FGradiantColors.FStartColor,FGradiantColors.EndColor) ;
          Canvas.CopyRect(Rect(0,0,150,150),TempBmp.Canvas,Rect(0,0,150,150));
+
+         Canvas.Font.Size:=20;
+         Canvas.Brush.Style:=bsClear;
+         Canvas.TextOut((ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2),(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2),FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+
+
          TempBmp.Free;
 
 
@@ -1288,6 +1759,111 @@ BsRound :begin
           end;
 
          end;
+
+
+
+if FShadow.FShadowEffect then
+
+  begin
+
+  case  FProgressShape of
+  psRecangle: BlurCanavs(Canvas,psRecangle,ClientWidth,ClientHeight);
+  psCircle:BlurCanavs(Canvas,psCircle,150,150);
+  psSectors:BlurCanavs(Canvas,psSectors,150,150);
+  end;
+  end;
+
+
+  // Draw Progress Percentage (2)
+
+
+  if FShowProgressPercentage then
+begin
+Canvas.Brush.Style:=bsSolid;
+if (100*Roundto((FProgress/FMax),-2))<=50 then
+Canvas.Font.Color:=FProgressText.FStartTextColor else Canvas.Font.Color:=FProgressText.FMidTextColor;
+
+if FProgressText.FTextBox then
+begin
+Canvas.Brush.Color:=FProgressText.FTextBoxColor;
+PercentRectLeft:=(ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
+PercentRectTop:=(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
+
+PercentWidth:=Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+PercentHeight:=Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+
+//=========
+
+case  FProgressText.FTextAlignemnt of
+
+      txCenter:begin
+               NewPerLeft:=PercentRectLeft-1;
+               NewPerTop:=PercentRectTop;
+               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,PercentRectLeft+PercentWidth+2,PercentRectTop+PercentHeight+2,5,5)  ;
+               end;
+      txLeft  :begin
+               NewPerLeft:=1;
+               NewPerTop:=PercentRectTop;
+               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,PercentWidth+2,PercentRectTop+PercentHeight+2,5,5)  ;
+               end;
+      txRight :begin
+               NewPerLeft:=ClientWidth-PercentWidth-2;
+               NewPerTop:=(ClientHeight div 2)-(PercentHeight div 2)-1;
+               PerHrgn:=CreateRoundRectRgn(NewPerLeft,NewPerTop,ClientWidth-1,(ClientHeight div 2)-(PercentHeight div 2)+1+PercentHeight,5,5)  ;
+               End;
+
+end;
+
+FillRgn(Canvas.Handle,PerHrgn,Canvas.Brush.Handle) ;
+
+DeleteObject(PerHrgn);
+
+Canvas.Brush.Style:=bsClear;
+Canvas.TextOut(NewPerLeft,NewPerTop,FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+
+//=========
+
+
+end
+else            // No Text Box ...
+begin
+
+PercentRectLeft:=(ClientWidth div 2)-(Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
+PercentRectTop:=(ClientHeight div 2)-(Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%') div 2);
+
+PercentWidth:=Canvas.TextWidth(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+PercentHeight:=Canvas.TextHeight(FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+
+case  FProgressText.FTextAlignemnt of
+
+      txCenter:begin
+               NewPerLeft:=PercentRectLeft-1;
+               NewPerTop:=PercentRectTop;
+               end;
+      txLeft  :begin
+               NewPerLeft:=1;
+               NewPerTop:=PercentRectTop;
+               end;
+      txRight :begin
+               NewPerLeft:=ClientWidth-PercentWidth-2;
+               NewPerTop:=(ClientHeight div 2)-(PercentHeight div 2)-1;
+               End;
+
+end;
+
+
+Canvas.Brush.Style:=bsClear;
+Canvas.TextOut(NewPerLeft,NewPerTop,FloatToStr(100*Roundto((FProgress/FMax),-2))+'%');
+
+end;
+end;
+
+
+// Glow Effect
+
+
+
+
 end;
 
 
@@ -1359,16 +1935,6 @@ begin
     if Value<>FHasBorders then
 begin
 FHasBorders:=Value;
-Invalidate;
-end;
-
-end;
-
-procedure TIssamProgressBar.SetLineColor(Value: Tcolor);
-begin
-  if Value<>FLineColor then
-begin
-FLineColor:=Value;
 Invalidate;
 end;
 
@@ -1478,8 +2044,7 @@ begin
 end;
 
 procedure TIssamProgressBar.SetBounds(Aleft, ATop, AWidth, AHeight: Integer);
-var
-  Rhrgn,Hhrgn:HRGN;
+
 begin
   inherited;
 if Canvas.HandleAllocated then
@@ -1572,18 +2137,19 @@ function TIssamProgressBar.DrawRadiusLines(btmap: TBitmap; Center: TPoint;
   BackGroundColor,StartColor,EndColor: Tcolor): Boolean;
 var
     StepRad,CenterStep:Double;
-    i,j,ProgressCount:Integer;
+    i,j,ProgressCount,PenWidth:Integer;
     InternalArias:array of TPoint;
     ExternalAngles:array of Double;
     PrgoressAngle:Double;
+
 begin
   StepRad:=2*pi/50;   //50 is the ideal Value..
   if Max=0 then Exit;
-
+  PenWidth:=1 ;
   GradientFill(btmap.Canvas.Handle,Rect(0,0,150,150),EndColor,StartColor,true) ;
 
   btmap.Canvas.Brush.Style:=bsClear;
-  btmap.Canvas.Pen.Width:=1;
+  btmap.Canvas.Pen.Width:=PenWidth;          // which determine the space between the Sectors..
   btmap.Canvas.Pen.Color:=$0064C5F9;
   btmap.Canvas.Ellipse(Center.X-Radius1,Center.Y-Radius1,Center.X+Radius1,Center.Y+Radius1);
   btmap.Canvas.Ellipse(Center.X-Radius2,Center.Y-Radius2,Center.X+Radius2,Center.Y+Radius2);
@@ -1624,7 +2190,7 @@ begin
     end;
 
 
-    Canvas.Pen.width:=2;
+    Canvas.Pen.width:=PenWidth+1;
     Canvas.Pen.Color:=clWhite;
 
     for i:=0 to 49 do
@@ -1641,7 +2207,7 @@ begin
   //  begin
     btmap.Canvas.Brush.Style:=bsSolid;                     //Hide the Centeral Circle
     btmap.Canvas.Brush.Color:=BackGroundColor;
-    btmap.Canvas.Pen.width:=1;
+    btmap.Canvas.Pen.width:=PenWidth;
     btmap.Canvas.Pen.Color:=BackGroundColor;//$00006BD7;
     btmap.Canvas.Ellipse(Center.X-Radius2,Center.Y-Radius2,Center.X+Radius2,Center.Y+Radius2);
 
@@ -1664,7 +2230,7 @@ begin
 
   btmap.Canvas.Font.Size:=round(Radius2/2);
   // Most Importent...
-  btmap.Canvas.TextOut(Center.X-(btmap.Canvas.TextWidth(IntToStr(Round(100*Progress/Max))+'%')div 2),Center.Y-(btmap.Canvas.TextHeight(IntToStr(Round(100*Progress/Max))+'%')div 2),IntToStr(Round(100*Progress/Max))+'%');
+ // btmap.Canvas.TextOut(Center.X-(btmap.Canvas.TextWidth(IntToStr(Round(100*Progress/Max))+'%')div 2),Center.Y-(btmap.Canvas.TextHeight(IntToStr(Round(100*Progress/Max))+'%')div 2),IntToStr(Round(100*Progress/Max))+'%');
   btmap.Canvas.Brush.Style:=bsClear;
   btmap.Canvas.pen.Color:=clblack;
   btmap.Canvas.Ellipse(Center.X-Radius1,Center.Y-Radius1,Center.X+Radius1,Center.Y+Radius1);
@@ -1680,6 +2246,302 @@ begin
   btmap.Canvas.Ellipse(Center.X-Radius1,Center.Y-Radius1,Center.X+Radius1,Center.Y+Radius1);
 
 
+end;
+
+procedure TIssamProgressBar.SetProgressTexture(Value: Tbitmap);
+begin
+FProgressTexture.Assign(Value);
+Invalidate;
+end;
+
+
+
+procedure TIssamProgressBar.MakeGaussianKernel(var K: TKernel; radius,
+  MaxData, DataGranularity: double);
+var
+  j: integer;
+  temp, delta: double;
+  KernelSize: TKernelSize;
+begin
+  for j := Low(K.Weights) to High(K.Weights) do
+  begin
+    temp := j / radius;
+    K.Weights[j] := exp(-temp * temp / 2);
+  end;
+  {now divide by constant so sum(Weights) = 1:}
+  temp := 0;
+  for j := Low(K.Weights) to High(K.Weights) do
+    temp := temp + K.Weights[j];
+  for j := Low(K.Weights) to High(K.Weights) do
+    K.Weights[j] := K.Weights[j] / temp;
+  {now discard (or rather mark as ignorable by setting Size) the entries that are too small to matter.
+  This is important, otherwise a blur with a small radius will take as long as with a large radius...}
+  KernelSize := MaxKernelSize;
+  delta := DataGranularity / (2 * MaxData);
+  temp := 0;
+  while (temp < delta) and (KernelSize > 1) do
+  begin
+    temp := temp + 2 * K.Weights[KernelSize];
+    dec(KernelSize);
+  end;
+  K.Size := KernelSize;
+  {now just to be correct go back and jiggle again so the sum of the entries we'll be using is exactly 1}
+  temp := 0;
+  for j := -K.Size to K.Size do
+    temp := temp + K.Weights[j];
+  for j := -K.Size to K.Size do
+    K.Weights[j] := K.Weights[j] / temp;
+
+end;
+
+procedure TIssamProgressBar.BlurRow(var theRow: array of TRGBTriple;
+  K: TKernel; P: PRow);
+var
+  j, n: integer;
+  tr, tg, tb: double; {tempRed, etc}
+  w: double;
+begin
+  for j := 0 to High(theRow) do
+  begin
+    tb := 0;
+    tg := 0;
+    tr := 0;
+    for n := -K.Size to K.Size do
+    begin
+      w := K.Weights[n];
+      {the TrimInt keeps us from running off the edge of the row...}
+      with theRow[TrimInt(0, High(theRow), j - n)] do
+      begin
+        tb := tb + w * b;
+        tg := tg + w * g;
+        tr := tr + w * r;
+      end;
+    end;
+    with P[j] do
+    begin
+      b := TrimReal(0, 255, tb);
+      g := TrimReal(0, 255, tg);
+      r := TrimReal(0, 255, tr);
+    end;
+  end;
+  Move(P[0], theRow[0], (High(theRow) + 1) * Sizeof(TRGBTriple));
+
+end;
+
+procedure TIssamProgressBar.GBlur(theBitmap: TBitmap; radius: double);
+var
+  Row, Col: integer;
+  theRows: PPRows;
+  K: TKernel;
+  ACol: PRow;
+  P: PRow;
+begin
+  if (theBitmap.HandleType <> bmDIB) or (theBitmap.PixelFormat <> pf24Bit) then
+    raise exception.Create('GBlur only works for 24-bit bitmaps');
+  MakeGaussianKernel(K, radius,255, 1);
+  GetMem(theRows, theBitmap.Height * SizeOf(PRow));
+  GetMem(ACol, theBitmap.Height * SizeOf(TRGBTriple));
+  {record the location of the bitmap data:}
+  for Row := 0 to theBitmap.Height - 1 do
+    theRows[Row] := theBitmap.Scanline[Row];
+  {blur each row:}
+  P := AllocMem(theBitmap.Width * SizeOf(TRGBTriple));
+  for Row := 0 to theBitmap.Height - 1 do
+    BlurRow(Slice(theRows[Row]^, theBitmap.Width), K, P);
+  {now blur each column}
+  ReAllocMem(P, theBitmap.Height * SizeOf(TRGBTriple));
+  for Col := 0 to theBitmap.Width - 1 do
+  begin
+    {first read the column into a TRow:}
+    for Row := 0 to theBitmap.Height - 1 do
+      ACol[Row] := theRows[Row][Col];
+    BlurRow(Slice(ACol^, theBitmap.Height), K, P);
+    {now put that row, um, column back into the data:}
+    for Row := 0 to theBitmap.Height - 1 do
+      theRows[Row][Col] := ACol[Row];
+  end;
+  FreeMem(theRows);
+  FreeMem(ACol);
+  ReAllocMem(P, 0);
+
+end;
+
+function TIssamProgressBar.TrimInt(Lower, Upper,
+  theInteger: integer): integer;
+begin
+  if (theInteger <= Upper) and (theInteger >= Lower) then
+    result := theInteger
+  else if theInteger > Upper then
+    result := Upper
+  else
+    result := Lower;
+end;
+
+function TIssamProgressBar.TrimReal(Lower, Upper: integer;
+  x: double): integer;
+begin
+ if (x < upper) and (x >= lower) then
+    result := trunc(x)
+  else if x > Upper then
+    result := Upper
+  else
+    result := Lower;
+end;
+
+procedure TIssamProgressBar.PrepareBitmap32Shadow(Bitmap: TBitmap;
+  Darkness: Byte;ShColor:Tcolor);
+var
+  I, J: Integer;
+  Pixels: PRGBQuad;
+  Color: COLORREF;
+begin
+  for I := 0 to Bitmap.Height - 1 do
+  begin
+    Pixels := PRGBQuad(Bitmap.ScanLine[I]);
+    for J := 0 to Bitmap.Width - 1 do
+    begin
+      with Pixels^ do
+      begin
+        Color := RGB(rgbRed, rgbGreen, rgbBlue);
+        case Color of
+          $FFFFFF: rgbReserved := 0;   // white = transparent
+          $000000: rgbReserved := 255; // black = opaque
+          else
+            rgbReserved := 255 - ((rgbRed + rgbGreen + rgbBlue) div 3); // intensity of semi transparent
+        end;
+        rgbRed := GetRValue(ColorToRGB(ShColor)) ;
+        rgbGreen := GetGValue(ColorToRGB(ShColor)) ;
+        rgbBlue := GetBValue(ColorToRGB(ShColor)) ; // darkness
+        // pre-multiply the pixel with its alpha channel
+        rgbRed := (rgbRed * rgbReserved) div $FF;
+        rgbGreen := (rgbGreen * rgbReserved) div $FF;
+        rgbBlue := (rgbBlue * rgbReserved) div $FF;
+      end;
+      Inc(Pixels);
+    end;
+  end;
+
+end;
+
+
+
+
+
+procedure TIssamProgressBar.SetShadow(Value: TShadowEffect);
+begin
+FShadow.Assign(Value);
+Invalidate;
+
+end;
+
+procedure TIssamProgressBar.BlurCanavs(Canva: TCanvas; Shape: TProgressShape;W,H:Integer);
+{$IFDEF VER130} // D5
+const
+  AC_SRC_ALPHA = $01;
+
+{$ENDIF}
+var
+Bitmap: TBitmap;
+BlendFunction: TBlendFunction;
+X,Y:Integer;
+begin
+
+
+  try
+    Bitmap := TBitmap.Create;
+
+    Bitmap.PixelFormat := pf24bit;
+    Bitmap.Width :=W;
+    Bitmap.Height :=H;
+
+    Bitmap.Canvas.Brush.Style:=bsSolid;
+    Bitmap.Canvas.Pen.Color := clred;
+    Bitmap.Canvas.Brush.Color := clred;
+    case Shape of
+    psRecangle:
+    begin
+    Bitmap.Canvas.RoundRect(5, FShadow.FshadowThickness, Width - 5, Height - FShadow.FshadowThickness, FBordersEdge, FBordersEdge);
+    X:=0;Y:=0;
+    end;
+    pscircle:
+    begin
+    Bitmap.Canvas.Ellipse(5,5,70,70)  ;
+    X:=37;Y:=37;
+    end;
+    psSectors:
+    begin
+    Bitmap.Canvas.Ellipse(5,5,75,75) ;
+    X:=35;Y:=35;
+    end;
+    end;
+    GBlur(Bitmap, FShadow.FShadowDarkness);
+
+    Bitmap.PixelFormat := pf32bit;
+    Bitmap.IgnorePalette := True;
+    Bitmap.HandleType := bmDIB;
+
+   PrepareBitmap32Shadow(Bitmap, FShadow.Drakness,FShadow.FShadowColor);
+
+    BlendFunction.BlendOp := AC_SRC_OVER;
+    BlendFunction.BlendFlags := 0;
+    BlendFunction.SourceConstantAlpha := 255;
+    BlendFunction.AlphaFormat := AC_SRC_ALPHA;
+
+    Windows.AlphaBlend(
+      Canva.Handle,         // HDC hdcDest
+      X,                     // int xoriginDest
+      Y,                     // int yoriginDest
+      Bitmap.Width,          // int wDest
+      Bitmap.Height,         // int hDest
+      Bitmap.Canvas.Handle,  // HDC hdcSrc
+      0,                     // int xoriginSrc
+      0,                     // int yoriginSrc
+      Bitmap.Width,          // int wSrc
+      Bitmap.Height,         // int hSrc
+      BlendFunction);        // BLENDFUNCTION
+  finally
+    Bitmap.Free;
+
+  end;
+
+
+
+end;
+
+procedure TIssamProgressBar.SetProgressFillSyle(Value: TProgressFillSyle);
+begin
+if Value<>FProgressFillStyle then
+begin
+FProgressFillStyle:=Value;
+Invalidate;
+end;
+end;
+
+procedure TIssamProgressBar.SetOrintation(Value: TOrintation);
+begin
+if Value<>FOrintation then
+begin
+FOrintation:=Value;
+Invalidate;
+end;
+end;
+
+procedure TIssamProgressBar.RotateText(ACanvas: TCanvas; X, Y,
+  Angle: Integer; const Text: String);
+var
+LogFont:TLogFont;
+OldF,NewF:HFONT;
+begin
+GetObject( ACanvas.Font.Handle, SizeOf( LogFont ), @LogFont );
+  LogFont.lfHeight := ACanvas.Font.Height;
+  LogFont.lfEscapement := Angle * 10;
+  LogFont.lfOrientation := Angle * 10;
+  LogFont.lfWeight := FW_LIGHT;
+  NewF := CreateFontIndirect( LogFont );
+  OldF := SelectObject( ACanvas.Handle, NewF );
+  ACanvas.TextOut( X, Y, Text );
+  NewF := SelectObject( ACanvas.Handle, OldF );
+  DeleteObject( NewF );
 end;
 
 { TBlocKRecord }
@@ -1766,15 +2628,7 @@ FGradiantColors.Assign(Value);
 Invalidate;
 end;
 
-procedure TBlocKRecord.SetProgressFillSyle(Value: TProgressFillSyle);
-begin
-  if Value<>FProgressFillSyle then
-FProgressFillSyle:=Value;
 
-if Assigned(FOnChange) then
-       FOnChange(self);
-
-end;
 
 { TGradiantColors }
 
@@ -1821,6 +2675,24 @@ FGradientDirection:=Value;
 
 if Assigned(FOnChange) then
        FOnChange(self);
+end;
+
+procedure TGradiantColors.SetReverseColors(Value: Boolean);
+var
+TempColor:Tcolor;
+begin
+if Value<>FReverseColors then
+begin
+FReverseColors:=Value;
+TempColor:=FStartColor;
+FStartColor:=FEndColor;
+FEndColor:=TempColor;
+
+end;
+
+if Assigned(FOnChange) then
+       FOnChange(self);
+
 end;
 
 procedure TGradiantColors.SetStartColor(Value: TColor);
@@ -2011,6 +2883,14 @@ TIssamProgressBar(FOwner).Invalidate;
 end;
 
 
+procedure TColorSection.SetPercentRange(Value: string);
+begin
+if Value <> FPercentRang then
+FPercentRang:=Value;
+
+TIssamProgressBar(FOwner).Invalidate;
+end;
+
 procedure TColorSection.SetShowText(Value: Boolean);
 begin
 if Value <> FShowText then
@@ -2027,6 +2907,14 @@ FText:=Value;
 
 TIssamProgressBar(FOwner).Invalidate;
 
+end;
+
+procedure TColorSection.SetTextAngle(Value: Integer);
+begin
+if Value <> FTextAngle then
+FTextAngle:=Value;
+
+TIssamProgressBar(FOwner).Invalidate;
 end;
 
 procedure TColorSection.SetTextColor(Value: TColor);
@@ -2054,8 +2942,9 @@ begin
  if Other is TSectionsColors then
  begin
     for i:=0 to Count-1  do
+    begin
     Items[i]:= TSectionsColors(Other).Items[i];
-
+    end;
    { if Assigned(FOnChange) then
     FOnChange(self);}
     TIssamProgressBar(FOwner).Invalidate;
@@ -2100,6 +2989,63 @@ TIssamProgressBar(FOwner).Invalidate;
 end;
 
 
+
+{ TShadowEffect }
+
+procedure TShadowEffect.Assign(Source: TPersistent);
+begin
+if Source is TShadowEffect then
+begin
+FShadowColor:=TShadowEffect(Source).FShadowColor;
+FShadowEffect:=TShadowEffect(Source).FShadowEffect;
+FShadowDarkness:=TShadowEffect(Source).FShadowDarkness;
+FshadowThickness:=TShadowEffect(Source).FshadowThickness;
+
+if Assigned(FOnChange) then
+FOnChange(self);
+
+end else
+
+  inherited;
+
+end;
+
+procedure TShadowEffect.SetShadowColor(Value: Tcolor);
+begin
+if Value<>FShadowColor then
+FShadowColor:=Value;
+
+if Assigned(FOnChange) then
+FOnChange(self);
+end;
+
+procedure TShadowEffect.SetShadowDarkness(Value: TDarknessRange);
+begin
+if Value in [1..4] then
+FShadowDarkness:=Value;
+
+if Assigned(FOnChange) then
+FOnChange(self);
+end;
+
+procedure TShadowEffect.SetShadowEffect(Value: Boolean);
+begin
+if Value<>FShadowEffect then
+FShadowEffect:=Value;
+
+if Assigned(FOnChange) then
+FOnChange(self);
+
+end;
+
+procedure TShadowEffect.SetShadowThickness(Value: TThicknessRang);
+begin
+if Value<>FshadowThickness then
+FshadowThickness:=Value;
+
+if Assigned(FOnChange) then
+FOnChange(self);
+end;
 
 end.
  
