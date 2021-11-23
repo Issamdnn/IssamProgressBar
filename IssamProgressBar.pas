@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes,
-  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls,ShadowWnd;
+  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls,ShadowWnd,DesignIntf;
 
 
 type
@@ -72,6 +72,13 @@ type
   Weights: array[-MaxKernelSize..MaxKernelSize] of single;
   end;
 
+   type
+   TSectionRange=record
+   FMin:0..100;
+   FMax:0..100;
+
+
+   end;
 
    type
    TShadowEffect=class(TPersistent)
@@ -116,12 +123,14 @@ type
     FOwner:TPersistent;
     FTextAngle:Integer;
     FPercentRang:string;
+    FSectionRange:TSectionRange;
     procedure SetColor(Value:TColor);
     procedure SetText(Value:String);
     procedure SetShowText(Value:Boolean);
     procedure SetTextColor(Value:TColor);
     procedure SetTextAngle(Value:Integer);
     procedure SetPercentRange(Value:string);
+    procedure SetSectionRange(Value:TSectionRange);
     public
     constructor Create(Collection: TCollection);override;
     published
@@ -131,7 +140,8 @@ type
     property TextColor:TColor read FTextColor write SetTextColor;
     property OnChange: TNotifyEvent read FOnChange write FOnChange;
     property TextAngle:Integer read FTextAngle write SetTextAngle;
-    property Range:string read FPercentRang write SetPercentRange;
+    property Range:TSectionRange read FSectionRange write SetSectionRange;
+
     end;
 
     type
@@ -431,6 +441,7 @@ uses Types;
 procedure Register;
 begin
 RegisterComponents('Additional', [TIssamProgressBar]);
+RegisterPropertyEditor(TypeInfo(integer),nil,'Range',TSectionRange)
 end;
 
 function GradientFill(DC: HDC; Vertex: PTriVertex; NumVertex: ULONG;
@@ -570,7 +581,8 @@ begin
   FProgressText.Free;
   FGradiantColors.Free;
   FProgressTexture.Free;
- 
+  FShadow.Free;
+  
   inherited Destroy;
 end;
 
@@ -2888,6 +2900,13 @@ begin
 if Value <> FPercentRang then
 FPercentRang:=Value;
 
+TIssamProgressBar(FOwner).Invalidate;
+end;
+
+procedure TColorSection.SetSectionRange(Value: TSectionRange);
+begin
+FSectionRange.FMin:=Value.FMin;
+FSectionRange.FMax:=Value.FMax  ;
 TIssamProgressBar(FOwner).Invalidate;
 end;
 
