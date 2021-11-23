@@ -19,7 +19,7 @@ interface
 
 uses
   SysUtils, Windows, Messages, Classes,
-  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls,ShadowWnd,DesignIntf;
+  Graphics, Controls, Forms, Dialogs,Math,ExtCtrls,ShadowWnd;
 
 
 type
@@ -441,7 +441,6 @@ uses Types;
 procedure Register;
 begin
 RegisterComponents('Additional', [TIssamProgressBar]);
-RegisterPropertyEditor(TypeInfo(integer),nil,'Range',TSectionRange)
 end;
 
 function GradientFill(DC: HDC; Vertex: PTriVertex; NumVertex: ULONG;
@@ -1534,7 +1533,7 @@ begin
 
                      OrVertical:
                      begin
-                     RotateText(Canvas,Sections[SectionCount].Left+((Sections[SectionCount].Right-(Sections[SectionCount].Left))div 2)-((Canvas.TextHeight(FSectionsColors.Items[SectionCount].FText))div 2)
+                     RotateText(Canvas,Sections[SectionCount].Left+(ClientWidth div 2)-((Canvas.TextHeight(FSectionsColors.Items[SectionCount].FText))div 2)-2
                      ,Sections[SectionCount].top-((Sections[SectionCount].Top-(Sections[SectionCount].Bottom))div 2)+((Canvas.TextWidth(FSectionsColors.Items[SectionCount].FText))div 2),FSectionsColors.Items[SectionCount].FTextAngle,FSectionsColors.Items[SectionCount].FText);
                      end;
 
@@ -2467,8 +2466,8 @@ begin
     Bitmap.Height :=H;
 
     Bitmap.Canvas.Brush.Style:=bsSolid;
-    Bitmap.Canvas.Pen.Color := clred;
-    Bitmap.Canvas.Brush.Color := clred;
+    Bitmap.Canvas.Pen.Color := Self.FShadow.FShadowColor  ;
+    Bitmap.Canvas.Brush.Color := Self.FShadow.FShadowColor ;
     case Shape of
     psRecangle:
     begin
